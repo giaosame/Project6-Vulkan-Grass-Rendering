@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8.12)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
 
-project(cis565_project6_vulkan_grass_rendering)
+project(vulkan_grass_rendering)
 
 OPTION(USE_D2D_WSI "Build the project using Direct to Display swapchain" OFF)
 
@@ -25,7 +25,7 @@ ENDIF(WIN32)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DNOMINMAX -D_USE_MATH_DEFINES")
 
 add_definitions(-D_CRT_SECURE_NO_WARNINGS)
-add_definitions(-std=c++11)
+add_definitions(-std=c++1z)
 
 # Enable the creation of folders for Visual Studio projects
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)

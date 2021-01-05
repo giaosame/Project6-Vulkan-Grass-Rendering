@@ -2,7 +2,7 @@
 
 #include <bitset>
 #include <vector>
-#include <vulkan/vulkan.h>
+#include <vulkan/vulkan.hpp>
 #include "QueueFlags.h"
 #include "Device.h"
 
@@ -14,19 +14,19 @@ public:
     Instance() = delete;
     Instance(const char* applicationName, unsigned int additionalExtensionCount = 0, const char** additionalExtensions = nullptr);
 
-    VkInstance GetVkInstance();
-    VkPhysicalDevice GetPhysicalDevice();
+    vk::Instance GetVkInstance();
+    vk::PhysicalDevice GetPhysicalDevice();
     const QueueFamilyIndices& GetQueueFamilyIndices() const;
-    const VkSurfaceCapabilitiesKHR& GetSurfaceCapabilities() const;
-    const std::vector<VkSurfaceFormatKHR>& GetSurfaceFormats() const;
-    const std::vector<VkPresentModeKHR>& GetPresentModes() const;
+    const vk::SurfaceCapabilitiesKHR& GetSurfaceCapabilities() const;
+    const std::vector<vk::SurfaceFormatKHR>& GetSurfaceFormats() const;
+    const std::vector<vk::PresentModeKHR>& GetPresentModes() const;
     
-    uint32_t GetMemoryTypeIndex(uint32_t types, VkMemoryPropertyFlags properties) const;
-    VkFormat GetSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) const;
+    uint32_t GetMemoryTypeIndex(uint32_t types, vk::MemoryPropertyFlags properties) const;
+    vk::Format GetSupportedFormat(const std::vector<vk::Format>& candidates, vk::ImageTiling tiling, vk::FormatFeatureFlags features) const;
 
-    void PickPhysicalDevice(std::vector<const char*> deviceExtensions, QueueFlagBits requiredQueues, VkSurfaceKHR surface = VK_NULL_HANDLE);
+    void PickPhysicalDevice(std::vector<const char*> deviceExtensions, QueueFlagBits requiredQueues, const vk::SurfaceKHR& surface = nullptr);
 
-    Device* CreateDevice(QueueFlagBits requiredQueues, VkPhysicalDeviceFeatures deviceFeatures);
+    Device* CreateDevice(QueueFlagBits requiredQueues, vk::PhysicalDeviceFeatures deviceFeatures);
 
     ~Instance();
 
@@ -34,13 +34,13 @@ private:
 
     void initDebugReport();
 
-    VkInstance instance;
+    vk::UniqueInstance instance;
     VkDebugReportCallbackEXT debugReportCallback;
     std::vector<const char*> deviceExtensions;
-    VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
+    vk::PhysicalDevice physicalDevice;
     QueueFamilyIndices queueFamilyIndices;
-    VkSurfaceCapabilitiesKHR surfaceCapabilities;
-    std::vector<VkSurfaceFormatKHR> surfaceFormats;
-    std::vector<VkPresentModeKHR> presentModes;
-    VkPhysicalDeviceMemoryProperties deviceMemoryProperties;
+    vk::SurfaceCapabilitiesKHR surfaceCapabilities;
+    std::vector<vk::SurfaceFormatKHR> surfaceFormats;
+    std::vector<vk::PresentModeKHR> presentModes;
+    vk::PhysicalDeviceMemoryProperties deviceMemoryProperties;
 };

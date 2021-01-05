@@ -21,20 +21,22 @@ namespace {
 }
 
 // Wrap the shaders in shader modules
-VkShaderModule ShaderModule::Create(const std::vector<char>& code, VkDevice logicalDevice) {
-    VkShaderModuleCreateInfo createInfo = {};
-    createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-    createInfo.codeSize = code.size();
-    createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
+vk::ShaderModule ShaderModule::Create(const std::vector<char>& code, vk::Device logicalDevice) {
+    vk::ShaderModuleCreateInfo createInfo;
+    createInfo.setCodeSize(code.size());
+    createInfo.setPCode(reinterpret_cast<const uint32_t*>(code.data()));
 
-    VkShaderModule shaderModule;
-    if (vkCreateShaderModule(logicalDevice, &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
+    vk::ShaderModule shaderModule;
+    try {
+        shaderModule = logicalDevice.createShaderModule(createInfo);
+    } 
+    catch (vk::SystemError err) {
         throw std::runtime_error("Failed to create shader module");
     }
 
     return shaderModule;
 }
 
-VkShaderModule ShaderModule::Create(const std::string& filename, VkDevice logicalDevice) {
+vk::ShaderModule ShaderModule::Create(const std::string& filename, vk::Device logicalDevice) {
     return ShaderModule::Create(readFile(filename), logicalDevice);
 }

@@ -4,7 +4,7 @@
 #include "Device.h"
 
 namespace BufferUtils {
-    void CreateBuffer(Device* device, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
-    void CopyBuffer(Device* device, VkCommandPool commandPool, VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
-    void CreateBufferFromData(Device* device, VkCommandPool commandPool, void* bufferData, VkDeviceSize bufferSize, VkBufferUsageFlags bufferUsage, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
+    void CreateBuffer(Device* device, vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties, vk::Buffer& buffer, vk::DeviceMemory& bufferMemory);
+    void CopyBuffer(Device* device, vk::CommandPool commandPool, vk::Buffer srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize size);
+    void CreateBufferFromData(Device* device, vk::CommandPool commandPool, void* bufferData, vk::DeviceSize bufferSize, vk::BufferUsageFlags bufferUsage, vk::Buffer& buffer, vk::DeviceMemory& bufferMemory);
 }

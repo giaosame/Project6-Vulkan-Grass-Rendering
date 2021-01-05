@@ -1,10 +1,10 @@
 #pragma once
 
-#include <vulkan/vulkan.h>
+#include <vulkan/vulkan.hpp>
 #include <string>
 #include <vector>
 
 namespace ShaderModule {
-    VkShaderModule Create(const std::vector<char>& code, VkDevice logicalDevice);
-    VkShaderModule Create(const std::string& filename, VkDevice logicalDevice);
+    vk::ShaderModule Create(const std::vector<char>& code, vk::Device logicalDevice);
+    vk::ShaderModule Create(const std::string& filename, vk::Device logicalDevice);
 }

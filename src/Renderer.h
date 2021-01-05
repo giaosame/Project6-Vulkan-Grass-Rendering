@@ -43,40 +43,40 @@ public:
 
 private:
     Device* device;
-    VkDevice logicalDevice;
+    vk::Device logicalDevice;
     SwapChain* swapChain;
     Scene* scene;
     Camera* camera;
 
-    VkCommandPool graphicsCommandPool;
-    VkCommandPool computeCommandPool;
+    vk::CommandPool graphicsCommandPool;
+    vk::CommandPool computeCommandPool;
 
-    VkRenderPass renderPass;
+    vk::RenderPass renderPass;
 
-    VkDescriptorSetLayout cameraDescriptorSetLayout;
-    VkDescriptorSetLayout modelDescriptorSetLayout;
-    VkDescriptorSetLayout timeDescriptorSetLayout;
+    vk::DescriptorSetLayout cameraDescriptorSetLayout;
+    vk::DescriptorSetLayout modelDescriptorSetLayout;
+    vk::DescriptorSetLayout timeDescriptorSetLayout;
     
-    VkDescriptorPool descriptorPool;
+    vk::DescriptorPool descriptorPool;
 
-    VkDescriptorSet cameraDescriptorSet;
-    std::vector<VkDescriptorSet> modelDescriptorSets;
-    VkDescriptorSet timeDescriptorSet;
+    vk::DescriptorSet cameraDescriptorSet;
+    std::vector<vk::DescriptorSet> modelDescriptorSets;
+    vk::DescriptorSet timeDescriptorSet;
 
-    VkPipelineLayout graphicsPipelineLayout;
-    VkPipelineLayout grassPipelineLayout;
-    VkPipelineLayout computePipelineLayout;
+    vk::PipelineLayout graphicsPipelineLayout;
+    vk::PipelineLayout grassPipelineLayout;
+    vk::PipelineLayout computePipelineLayout;
 
-    VkPipeline graphicsPipeline;
-    VkPipeline grassPipeline;
-    VkPipeline computePipeline;
+    vk::Pipeline graphicsPipeline;
+    vk::Pipeline grassPipeline;
+    vk::Pipeline computePipeline;
 
-    std::vector<VkImageView> imageViews;
-    VkImage depthImage;
-    VkDeviceMemory depthImageMemory;
-    VkImageView depthImageView;
-    std::vector<VkFramebuffer> framebuffers;
+    std::vector<vk::ImageView> imageViews;
+    vk::Image depthImage;
+    vk::DeviceMemory depthImageMemory;
+    vk::ImageView depthImageView;
+    std::vector<vk::Framebuffer> framebuffers;
 
-    std::vector<VkCommandBuffer> commandBuffers;
-    VkCommandBuffer computeCommandBuffer;
+    std::vector<vk::CommandBuffer> commandBuffers;
+    vk::CommandBuffer computeCommandBuffer;
 };

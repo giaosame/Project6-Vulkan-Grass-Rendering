@@ -6,16 +6,16 @@
 
 namespace {
   // Specify the color channel format and color space type
-  VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats) {
-      // VK_FORMAT_UNDEFINED indicates that the surface has no preferred format, so we can choose any
-      if (availableFormats.size() == 1 && availableFormats[0].format == VK_FORMAT_UNDEFINED) {
-          return{ VK_FORMAT_B8G8R8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR };
+  vk::SurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<vk::SurfaceFormatKHR>& availableFormats) {
+      // vk::Format::eUndefined indicates that the surface has no preferred format, so we can choose any
+      if (availableFormats.size() == 1 && availableFormats[0].format == vk::Format::eUndefined) {
+          return vk::SurfaceFormatKHR{ vk::Format::eB8G8R8A8Unorm, vk::ColorSpaceKHR::eSrgbNonlinear };
       }
 
       // Otherwise, choose a preferred combination
       for (const auto& availableFormat : availableFormats) {
           // Ideal format and color space
-          if (availableFormat.format == VK_FORMAT_B8G8R8A8_UNORM && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
+          if (availableFormat.format == vk::Format::eB8G8R8A8Unorm && availableFormat.colorSpace == vk::ColorSpaceKHR::eSrgbNonlinear) {
               return availableFormat;
           }
       }
@@ -25,16 +25,16 @@ namespace {
   }
 
   // Specify the presentation mode of the swap chain
-  VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR> availablePresentModes) {
+  vk::PresentModeKHR chooseSwapPresentMode(const std::vector<vk::PresentModeKHR> availablePresentModes) {
       // Second choice
-      VkPresentModeKHR bestMode = VK_PRESENT_MODE_FIFO_KHR;
+      vk::PresentModeKHR bestMode = vk::PresentModeKHR::eFifo;
       
       for (const auto& availablePresentMode : availablePresentModes) {
-          if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
+          if (availablePresentMode == vk::PresentModeKHR::eMailbox) {
               // First choice
               return availablePresentMode;
           }
-          else if (availablePresentMode == VK_PRESENT_MODE_IMMEDIATE_KHR) {
+          else if (availablePresentMode == vk::PresentModeKHR::eImmediate) {
               // Third choice
               bestMode = availablePresentMode;
           }
@@ -44,13 +44,13 @@ namespace {
   }
 
   // Specify the swap extent (resolution) of the swap chain
-  VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, GLFWwindow* window) {
+  vk::Extent2D chooseSwapExtent(const vk::SurfaceCapabilitiesKHR& capabilities, GLFWwindow* window) {
       if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
           return capabilities.currentExtent;
       } else {
           int width, height;
           glfwGetWindowSize(window, &width, &height);
-          VkExtent2D actualExtent = { static_cast<uint32_t>(width), static_cast<uint32_t>(height) };
+          vk::Extent2D actualExtent = { static_cast<uint32_t>(width), static_cast<uint32_t>(height) };
 
           actualExtent.width = std::max(capabilities.minImageExtent.width, std::min(capabilities.maxImageExtent.width, actualExtent.width));
           actualExtent.height = std::max(capabilities.minImageExtent.height, std::min(capabilities.maxImageExtent.height, actualExtent.height));
@@ -60,28 +60,28 @@ namespace {
   }
 }
 
-SwapChain::SwapChain(Device* device, VkSurfaceKHR vkSurface, unsigned int numBuffers)
-  : device(device), vkSurface(vkSurface), numBuffers(numBuffers) {
-    
+SwapChain::SwapChain(Device* device, vk::SurfaceKHR vkSurface, unsigned int numBuffers)
+  : device(device), vkSurface(vkSurface), numBuffers(numBuffers) 
+{    
     Create();
 
-    VkSemaphoreCreateInfo semaphoreInfo = {};
-    semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-
-    if (vkCreateSemaphore(device->GetVkDevice(), &semaphoreInfo, nullptr, &imageAvailableSemaphore) != VK_SUCCESS ||
-        vkCreateSemaphore(device->GetVkDevice(), &semaphoreInfo, nullptr, &renderFinishedSemaphore) != VK_SUCCESS) {
+    vk::SemaphoreCreateInfo semaphoreInfo;
+    try {
+        imageAvailableSemaphore = device->GetLogicalDevice().createSemaphore(semaphoreInfo);
+        renderFinishedSemaphore = device->GetLogicalDevice().createSemaphore(semaphoreInfo);
+    }
+    catch (vk::SystemError err) {
         throw std::runtime_error("Failed to create semaphores");
     }
 }
 
 void SwapChain::Create() {
     auto* instance = device->GetInstance();
-
     const auto& surfaceCapabilities = instance->GetSurfaceCapabilities();
 
-    VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(instance->GetSurfaceFormats());
-    VkPresentModeKHR presentMode = chooseSwapPresentMode(instance->GetPresentModes());
-    VkExtent2D extent = chooseSwapExtent(surfaceCapabilities, GetGLFWWindow());
+    vk::SurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(instance->GetSurfaceFormats());
+    vk::PresentModeKHR presentMode = chooseSwapPresentMode(instance->GetPresentModes());
+    vk::Extent2D extent = chooseSwapExtent(surfaceCapabilities, GetGLFWWindow());
 
     uint32_t imageCount = surfaceCapabilities.minImageCount + 1;
     imageCount = numBuffers > imageCount ? numBuffers : imageCount;
@@ -90,80 +90,78 @@ void SwapChain::Create() {
     }
 
     // --- Create swap chain ---
-    VkSwapchainCreateInfoKHR createInfo = {};
-    createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-
+    vk::SwapchainCreateInfoKHR createInfo;
     // Specify surface to be tied to
-    createInfo.surface = vkSurface;
+    createInfo.setSurface(vkSurface);
 
     // Add details of the swap chain
-    createInfo.minImageCount = imageCount;
-    createInfo.imageFormat = surfaceFormat.format;
-    createInfo.imageColorSpace = surfaceFormat.colorSpace;
-    createInfo.imageExtent = extent;
-    createInfo.imageArrayLayers = 1;
-    createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+    createInfo.setMinImageCount(imageCount);
+    createInfo.setImageFormat(surfaceFormat.format);
+    createInfo.setImageColorSpace(surfaceFormat.colorSpace);
+    createInfo.setImageExtent(extent);
+    createInfo.setImageArrayLayers(1);
+    createInfo.setImageUsage(vk::ImageUsageFlags(vk::ImageUsageFlagBits::eColorAttachment));
 
     const auto& queueFamilyIndices = instance->GetQueueFamilyIndices();
     if (queueFamilyIndices[QueueFlags::Graphics] != queueFamilyIndices[QueueFlags::Present]) {
         // Images can be used across multiple queue families without explicit ownership transfers
-        createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
-        createInfo.queueFamilyIndexCount = 2;
+        createInfo.setImageSharingMode(vk::SharingMode::eConcurrent);
+        createInfo.setQueueFamilyIndexCount(2);
         unsigned int indices[] = {
             static_cast<unsigned int>(queueFamilyIndices[QueueFlags::Graphics]),
             static_cast<unsigned int>(queueFamilyIndices[QueueFlags::Present])
         };
-        createInfo.pQueueFamilyIndices = indices;
+        createInfo.setPQueueFamilyIndices(indices);
     }
     else {
         // An image is owned by one queue family at a time and ownership must be explicitly transfered between uses
-        createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        createInfo.queueFamilyIndexCount = 0;
-        createInfo.pQueueFamilyIndices = nullptr;
+        createInfo.setImageSharingMode(vk::SharingMode::eExclusive);
+        createInfo.setQueueFamilyIndexCount(0);
+        createInfo.setPQueueFamilyIndices(nullptr);
     }
 
     // Specify transform on images in the swap chain (no transformation done here)
-    createInfo.preTransform = surfaceCapabilities.currentTransform;
+    createInfo.setPreTransform(surfaceCapabilities.currentTransform);
 
     // Specify alpha channel usage (set to be ignored here)
-    createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+    createInfo.setCompositeAlpha(vk::CompositeAlphaFlagBitsKHR::eOpaque);
 
     // Specify presentation mode
-    createInfo.presentMode = presentMode;
+    createInfo.setPresentMode(presentMode);
 
     // Specify whether we can clip pixels that are obscured by other windows
-    createInfo.clipped = VK_TRUE;
+    createInfo.setClipped(VK_TRUE);
 
     // Reference to old swap chain in case current one becomes invalid
-    createInfo.oldSwapchain = VK_NULL_HANDLE;
+    createInfo.setOldSwapchain(nullptr);
 
     // Create swap chain
-    if (vkCreateSwapchainKHR(device->GetVkDevice(), &createInfo, nullptr, &vkSwapChain) != VK_SUCCESS) {
+    try {
+        vkSwapChain = device->GetLogicalDevice().createSwapchainKHR(createInfo);
+    }
+    catch (vk::SystemError err) {
         throw std::runtime_error("Failed to create swap chain");
     }
 
     // --- Retrieve swap chain images ---
-    vkGetSwapchainImagesKHR(device->GetVkDevice(), vkSwapChain, &imageCount, nullptr);
-    vkSwapChainImages.resize(imageCount);
-    vkGetSwapchainImagesKHR(device->GetVkDevice(), vkSwapChain, &imageCount, vkSwapChainImages.data());
-
+    vkSwapChainImages = device->GetLogicalDevice().getSwapchainImagesKHR(vkSwapChain);
     vkSwapChainImageFormat = surfaceFormat.format;
     vkSwapChainExtent = extent;
 }
 
 void SwapChain::Destroy() {
-    vkDestroySwapchainKHR(device->GetVkDevice(), vkSwapChain, nullptr);
+    device->GetLogicalDevice().destroySwapchainKHR(vkSwapChain);
 }
 
-VkSwapchainKHR SwapChain::GetVkSwapChain() const {
+vk::SwapchainKHR SwapChain::GetVkSwapChain() const {
     return vkSwapChain;
 }
 
-VkFormat SwapChain::GetVkImageFormat() const {
+vk::Format SwapChain::GetVkImageFormat() const {
     return vkSwapChainImageFormat;
 }
 
-VkExtent2D SwapChain::GetVkExtent() const {
+vk::Extent2D SwapChain::GetVkExtent() const {
     return vkSwapChainExtent;
 }
 
@@ -175,16 +173,16 @@ uint32_t SwapChain::GetCount() const {
     return static_cast<uint32_t>(vkSwapChainImages.size());
 }
 
-VkImage SwapChain::GetVkImage(uint32_t index) const {
+vk::Image SwapChain::GetVkImage(uint32_t index) const {
     return vkSwapChainImages[index];
 }
 
-VkSemaphore SwapChain::GetImageAvailableVkSemaphore() const {
+vk::Semaphore SwapChain::GetImageAvailableVkSemaphore() const {
     return imageAvailableSemaphore;
 
 }
 
-VkSemaphore SwapChain::GetRenderFinishedVkSemaphore() const {
+vk::Semaphore SwapChain::GetRenderFinishedVkSemaphore() const {
     return renderFinishedSemaphore;
 }
 
@@ -195,44 +193,49 @@ void SwapChain::Recreate() {
 
 bool SwapChain::Acquire() {
     if (ENABLE_VALIDATION) {
-        // the validation layer implementation expects the application to explicitly synchronize with the GPU
-        vkQueueWaitIdle(device->GetQueue(QueueFlags::Present));
+        // The validation layer implementation expects the application to explicitly synchronize with the GPU
+        device->GetQueue(QueueFlags::Present).waitIdle();
     }
-    VkResult result = vkAcquireNextImageKHR(device->GetVkDevice(), vkSwapChain, std::numeric_limits<uint64_t>::max(), imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
-    if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
-        throw std::runtime_error("Failed to acquire swap chain image");
+    
+    try {
+        auto result = device->GetLogicalDevice().acquireNextImageKHR(vkSwapChain, std::numeric_limits<uint64_t>::max(),
+                                                                     imageAvailableSemaphore, nullptr);
+        imageIndex = result.value;
     }
-
-    if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+    catch (vk::OutOfDateKHRError err) {
         Recreate();
         return false;
+    }
+    catch (vk::SystemError err) {
+        throw std::runtime_error("Failed to acquire swap chain image");
     }
 
     return true;
 }
 
 bool SwapChain::Present() {
-    VkSemaphore signalSemaphores[] = { renderFinishedSemaphore };
+    std::array<vk::Semaphore, 1> signalSemaphores = { renderFinishedSemaphore };
 
     // Submit result back to swap chain for presentation
-    VkPresentInfoKHR presentInfo = {};
-    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-    presentInfo.waitSemaphoreCount = 1;
-    presentInfo.pWaitSemaphores = signalSemaphores;
+    vk::PresentInfoKHR presentInfo;
+    presentInfo.setWaitSemaphoreCount(1);
+    presentInfo.setPWaitSemaphores(signalSemaphores.data());
 
-    VkSwapchainKHR swapChains[] = { vkSwapChain };
-    presentInfo.swapchainCount = 1;
-    presentInfo.pSwapchains = swapChains;
-    presentInfo.pImageIndices = &imageIndex;
-    presentInfo.pResults = nullptr;
+    std::array<vk::SwapchainKHR, 1> swapChains = { vkSwapChain };
+    presentInfo.setSwapchainCount(1);
+    presentInfo.setPSwapchains(swapChains.data());
+    presentInfo.setPImageIndices(&imageIndex);
+    presentInfo.setPResults(nullptr);
 
-    VkResult result = vkQueuePresentKHR(device->GetQueue(QueueFlags::Present), &presentInfo);
-
-    if (result != VK_SUCCESS) {
+    vk::Result presentResult;
+    try {
+        presentResult = device->GetQueue(QueueFlags::Present).presentKHR(presentInfo);
+    }
+    catch (vk::SystemError err) {
         throw std::runtime_error("Failed to present swap chain image");
     }
 
-    if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
+    if (presentResult == vk::Result::eErrorOutOfDateKHR || presentResult == vk::Result::eSuboptimalKHR) {
         Recreate();
         return false;
     }
@@ -241,7 +244,7 @@ bool SwapChain::Present() {
 }
 
 SwapChain::~SwapChain() {
-    vkDestroySemaphore(device->GetVkDevice(), imageAvailableSemaphore, nullptr);
-    vkDestroySemaphore(device->GetVkDevice(), renderFinishedSemaphore, nullptr);
+    device->GetLogicalDevice().destroySemaphore(imageAvailableSemaphore);
+    device->GetLogicalDevice().destroySemaphore(renderFinishedSemaphore);
     Destroy();
 }

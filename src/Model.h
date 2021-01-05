@@ -1,9 +1,7 @@
 #pragma once
-
-#include <vulkan/vulkan.h>
+#include <vulkan/vulkan.hpp>
 #include <glm/glm.hpp>
 #include <vector>
-
 #include "Vertex.h"
 #include "Device.h"
 
@@ -16,40 +14,39 @@ protected:
     Device* device;
 
     std::vector<Vertex> vertices;
-    VkBuffer vertexBuffer;
-    VkDeviceMemory vertexBufferMemory;
+    vk::Buffer vertexBuffer;
+    vk::DeviceMemory vertexBufferMemory;
 
     std::vector<uint32_t> indices;
-    VkBuffer indexBuffer;
-    VkDeviceMemory indexBufferMemory;
+    vk::Buffer indexBuffer;
+    vk::DeviceMemory indexBufferMemory;
 
-    VkBuffer modelBuffer;
-    VkDeviceMemory modelBufferMemory;
-
+    vk::Buffer modelBuffer;
+    vk::DeviceMemory modelBufferMemory;
     ModelBufferObject modelBufferObject;
 
-    VkImage texture = VK_NULL_HANDLE;
-    VkImageView textureView = VK_NULL_HANDLE;
-    VkSampler textureSampler = VK_NULL_HANDLE;
+    vk::Image texture;
+    vk::ImageView textureView;
+    vk::Sampler textureSampler;
 
 public:
     Model() = delete;
-    Model(Device* device, VkCommandPool commandPool, const std::vector<Vertex> &vertices, const std::vector<uint32_t> &indices);
+    Model(Device* device, vk::CommandPool commandPool, const std::vector<Vertex> &vertices, const std::vector<uint32_t> &indices);
     virtual ~Model();
 
-    void SetTexture(VkImage texture);
+    void SetTexture(vk::Image texture);
 
     const std::vector<Vertex>& getVertices() const;
 
-    VkBuffer getVertexBuffer() const;
+    vk::Buffer getVertexBuffer() const;
 
     const std::vector<uint32_t>& getIndices() const;
 
-    VkBuffer getIndexBuffer() const;
+    vk::Buffer getIndexBuffer() const;
 
     const ModelBufferObject& getModelBufferObject() const;
 
-    VkBuffer GetModelBuffer() const;
-    VkImageView GetTextureView() const;
-    VkSampler GetTextureSampler() const;
+    vk::Buffer GetModelBuffer() const;
+    vk::ImageView GetTextureView() const;
+    vk::Sampler GetTextureSampler() const;
 };

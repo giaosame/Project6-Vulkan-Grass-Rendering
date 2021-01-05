@@ -1,92 +1,91 @@
 #include "BufferUtils.h"
 #include "Instance.h"
 
-void BufferUtils::CreateBuffer(Device* device, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) {
+void BufferUtils::CreateBuffer(Device* device, vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties, vk::Buffer& buffer, vk::DeviceMemory& bufferMemory) {
     // Create buffer
-    VkBufferCreateInfo bufferInfo = {};
-    bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    bufferInfo.size = size;
-    bufferInfo.usage = usage;
-    bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    vk::BufferCreateInfo bufferInfo;
+    bufferInfo.setSize(size);
+    bufferInfo.setUsage(usage);
+    bufferInfo.setSharingMode(vk::SharingMode::eExclusive);
 
-    if (vkCreateBuffer(device->GetVkDevice(), &bufferInfo, nullptr, &buffer) != VK_SUCCESS) {
+    try {
+        buffer = device->GetLogicalDevice().createBuffer(bufferInfo);
+    }
+    catch (vk::SystemError err) {
         throw std::runtime_error("Failed to create vertex buffer");
     }
 
     // Query buffer's memory requirements
-    VkMemoryRequirements memRequirements;
-    vkGetBufferMemoryRequirements(device->GetVkDevice(), buffer, &memRequirements);
+    vk::MemoryRequirements memRequirements = device->GetLogicalDevice().getBufferMemoryRequirements(buffer);
 
     // Allocate memory in device
-    VkMemoryAllocateInfo allocInfo = {};
-    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    allocInfo.allocationSize = memRequirements.size;
-    allocInfo.memoryTypeIndex = device->GetInstance()->GetMemoryTypeIndex(memRequirements.memoryTypeBits, properties);
+    vk::MemoryAllocateInfo allocInfo;
+    allocInfo.setAllocationSize(memRequirements.size);
+    allocInfo.setMemoryTypeIndex(device->GetInstance()->GetMemoryTypeIndex(memRequirements.memoryTypeBits, properties));
 
-    if (vkAllocateMemory(device->GetVkDevice(), &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS) {
-      throw std::runtime_error("Failed to allocate vertex buffer");
+    try {
+        bufferMemory = device->GetLogicalDevice().allocateMemory(allocInfo);
+    }
+    catch (vk::SystemError err) {
+        throw std::runtime_error("Failed to allocate vertex buffer");
     }
 
     // Associate allocated memory with vertex buffer
-    vkBindBufferMemory(device->GetVkDevice(), buffer, bufferMemory, 0);
+    device->GetLogicalDevice().bindBufferMemory(buffer, bufferMemory, 0);
 }
 
-void BufferUtils::CopyBuffer(Device* device, VkCommandPool commandPool, VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) {
-    VkCommandBufferAllocateInfo allocInfo = {};
-    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocInfo.commandPool = commandPool;
-    allocInfo.commandBufferCount = 1;
+void BufferUtils::CopyBuffer(Device* device, vk::CommandPool commandPool, vk::Buffer srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize size) {
+    vk::CommandBufferAllocateInfo allocInfo;
+    allocInfo.setLevel(vk::CommandBufferLevel::ePrimary);
+    allocInfo.setCommandPool(commandPool);
+    allocInfo.setCommandBufferCount(1);
 
-    VkCommandBuffer commandBuffer;
-    vkAllocateCommandBuffers(device->GetVkDevice(), &allocInfo, &commandBuffer);
+    vk::CommandBuffer commandBuffer;
+    device->GetLogicalDevice().allocateCommandBuffers(&allocInfo, &commandBuffer);
 
-    VkCommandBufferBeginInfo beginInfo = {};
-    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    vk::CommandBufferBeginInfo beginInfo;
+    beginInfo.setFlags(vk::CommandBufferUsageFlags(vk::CommandBufferUsageFlagBits::eOneTimeSubmit));
 
-    vkBeginCommandBuffer(commandBuffer, &beginInfo);
+    commandBuffer.begin(beginInfo);
 
-    VkBufferCopy copyRegion = {};
+    vk::BufferCopy copyRegion;
     copyRegion.size = size;
-    vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
+    commandBuffer.copyBuffer(srcBuffer, dstBuffer, 1, &copyRegion);
 
-    vkEndCommandBuffer(commandBuffer);
+    commandBuffer.end();
 
-    VkSubmitInfo submitInfo = {};
-    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &commandBuffer;
+    vk::SubmitInfo submitInfo;
+    submitInfo.setCommandBufferCount(1);
+    submitInfo.setPCommandBuffers(&commandBuffer);
 
-    vkQueueSubmit(device->GetQueue(QueueFlags::Graphics), 1, &submitInfo, VK_NULL_HANDLE);
-    vkQueueWaitIdle(device->GetQueue(QueueFlags::Graphics));
-    vkFreeCommandBuffers(device->GetVkDevice(), commandPool, 1, &commandBuffer);
+    device->GetQueue(QueueFlags::Graphics).submit(submitInfo, nullptr);
+    device->GetQueue(QueueFlags::Graphics).waitIdle();
+    device->GetLogicalDevice().freeCommandBuffers(commandPool, 1, &commandBuffer);
 }
 
-void BufferUtils::CreateBufferFromData(Device* device, VkCommandPool commandPool, void* bufferData, VkDeviceSize bufferSize, VkBufferUsageFlags bufferUsage, VkBuffer& buffer, VkDeviceMemory& bufferMemory) {
+void BufferUtils::CreateBufferFromData(Device* device, vk::CommandPool commandPool, void* bufferData, vk::DeviceSize bufferSize, vk::BufferUsageFlags bufferUsage, vk::Buffer& buffer, vk::DeviceMemory& bufferMemory) {
     // Create the staging buffer
-    VkBuffer stagingBuffer;
-    VkDeviceMemory stagingBufferMemory;
+    vk::Buffer stagingBuffer;
+    vk::DeviceMemory stagingBufferMemory;
 
-    VkBufferUsageFlags stagingUsage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-    VkMemoryPropertyFlags stagingProperties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+    vk::BufferUsageFlags stagingUsage(vk::BufferUsageFlagBits::eTransferSrc);
+    vk::MemoryPropertyFlags stagingProperties(vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
     BufferUtils::CreateBuffer(device, bufferSize, stagingUsage, stagingProperties, stagingBuffer, stagingBufferMemory);
 
     // Fill the staging buffer
-    void *data;
-    vkMapMemory(device->GetVkDevice(), stagingBufferMemory, 0, bufferSize, 0, &data);
+    void* data = device->GetLogicalDevice().mapMemory(stagingBufferMemory, 0, bufferSize);
     memcpy(data, bufferData, static_cast<size_t>(bufferSize));
-    vkUnmapMemory(device->GetVkDevice(), stagingBufferMemory);
+    device->GetLogicalDevice().unmapMemory(stagingBufferMemory);
 
     // Create the buffer
-    VkBufferUsageFlags usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | bufferUsage;
-    VkMemoryPropertyFlags flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+    vk::BufferUsageFlags usage = vk::BufferUsageFlags(vk::BufferUsageFlagBits::eTransferDst) | bufferUsage;
+    vk::MemoryPropertyFlags flags(vk::MemoryPropertyFlagBits::eDeviceLocal);
     BufferUtils::CreateBuffer(device, bufferSize, usage, flags, buffer, bufferMemory);
 
     // Copy data from staging to buffer
     BufferUtils::CopyBuffer(device, commandPool, stagingBuffer, buffer, bufferSize);
 
     // No need for the staging buffer anymore
-    vkDestroyBuffer(device->GetVkDevice(), stagingBuffer, nullptr);
-    vkFreeMemory(device->GetVkDevice(), stagingBufferMemory, nullptr);
+    device->GetLogicalDevice().destroyBuffer(stagingBuffer);
+    device->GetLogicalDevice().freeMemory(stagingBufferMemory);
 }

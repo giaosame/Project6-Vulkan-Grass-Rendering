@@ -1,10 +1,8 @@
-#include <iostream>
-
 #define GLM_FORCE_RADIANS
 // Use Vulkan depth range of 0.0 to 1.0 instead of OpenGL
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/gtc/matrix_transform.hpp>
-
+#include <iostream>
 #include "Camera.h"
 #include "BufferUtils.h"
 
@@ -16,12 +14,12 @@ Camera::Camera(Device* device, float aspectRatio) : device(device) {
     cameraBufferObject.projectionMatrix = glm::perspective(glm::radians(45.0f), aspectRatio, 0.1f, 100.0f);
     cameraBufferObject.projectionMatrix[1][1] *= -1; // y-coordinate is flipped
 
-    BufferUtils::CreateBuffer(device, sizeof(CameraBufferObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, buffer, bufferMemory);
-    vkMapMemory(device->GetVkDevice(), bufferMemory, 0, sizeof(CameraBufferObject), 0, &mappedData);
+    BufferUtils::CreateBuffer(device, sizeof(CameraBufferObject), vk::BufferUsageFlags(vk::BufferUsageFlagBits::eUniformBuffer), vk::MemoryPropertyFlags(vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent), buffer, bufferMemory);
+    mappedData = device->GetLogicalDevice().mapMemory(bufferMemory, 0, sizeof(CameraBufferObject));
     memcpy(mappedData, &cameraBufferObject, sizeof(CameraBufferObject));
 }
 
-VkBuffer Camera::GetBuffer() const {
+vk::Buffer Camera::GetBuffer() const {
     return buffer;
 }
 
@@ -42,7 +40,7 @@ void Camera::UpdateOrbit(float deltaX, float deltaY, float deltaZ) {
 }
 
 Camera::~Camera() {
-  vkUnmapMemory(device->GetVkDevice(), bufferMemory);
-  vkDestroyBuffer(device->GetVkDevice(), buffer, nullptr);
-  vkFreeMemory(device->GetVkDevice(), bufferMemory, nullptr);
+    device->GetLogicalDevice().unmapMemory(bufferMemory);
+    device->GetLogicalDevice().destroyBuffer(buffer);
+    device->GetLogicalDevice().freeMemory(bufferMemory);
 }

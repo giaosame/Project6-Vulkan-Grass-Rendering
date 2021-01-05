@@ -1,7 +1,8 @@
 #pragma once
 
 #include <array>
-#include <vulkan/vulkan.h>
+#include <stdexcept>
+#include <vulkan/vulkan.hpp>
 #include "QueueFlags.h"
 #include "SwapChain.h"
 
@@ -10,20 +11,20 @@ class Device {
     friend class Instance;
 
 public:
-    SwapChain* CreateSwapChain(VkSurfaceKHR surface, unsigned int numBuffers);
+    SwapChain* CreateSwapChain(vk::SurfaceKHR surface, unsigned int numBuffers);
     Instance* GetInstance();
-    VkDevice GetVkDevice();
-    VkQueue GetQueue(QueueFlags flag);
+    vk::Device GetLogicalDevice();
+    vk::Queue GetQueue(QueueFlags flag);
     unsigned int GetQueueIndex(QueueFlags flag);
     ~Device();
 
 private:
-    using Queues = std::array<VkQueue, sizeof(QueueFlags)>;
+    using Queues = std::array<vk::Queue, sizeof(QueueFlags)>;
     
     Device() = delete;
-    Device(Instance* instance, VkDevice vkDevice, Queues queues);
+    Device(Instance* instance, vk::Device device, Queues queues);
 
     Instance* instance;
-    VkDevice vkDevice;
+    vk::Device logicalDevice;
     Queues queues;
 };

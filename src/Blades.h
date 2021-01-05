@@ -1,5 +1,5 @@
 #pragma once
-#include <vulkan/vulkan.h>
+#include <vulkan/vulkan.hpp>
 #include <glm/glm.hpp>
 #include <array>
 #include "Model.h"
@@ -22,41 +22,42 @@ struct Blade {
     // Up vector and stiffness coefficient
     glm::vec4 up;
 
-    static VkVertexInputBindingDescription getBindingDescription() {
-        VkVertexInputBindingDescription bindingDescription = {};
-        bindingDescription.binding = 0;
-        bindingDescription.stride = sizeof(Blade);
-        bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+    // Specify vertex input binding description
+    static vk::VertexInputBindingDescription getBindingDescription() {
+        vk::VertexInputBindingDescription bindingDescription;
+        bindingDescription.setBinding(0);
+        bindingDescription.setStride(sizeof(Blade));
+        bindingDescription.setInputRate(vk::VertexInputRate::eVertex);
 
         return bindingDescription;
     }
 
-    static std::array<VkVertexInputAttributeDescription, 4> getAttributeDescriptions() {
-        std::array<VkVertexInputAttributeDescription, 4> attributeDescriptions = {};
+    static std::array<vk::VertexInputAttributeDescription, 4> getAttributeDescriptions() {
+        std::array<vk::VertexInputAttributeDescription, 4> attributeDescriptions = {};
 
         // v0
-        attributeDescriptions[0].binding = 0;
-        attributeDescriptions[0].location = 0;
-        attributeDescriptions[0].format = VK_FORMAT_R32G32B32A32_SFLOAT;
-        attributeDescriptions[0].offset = offsetof(Blade, v0);
+        attributeDescriptions[0].setBinding(0);
+        attributeDescriptions[0].setLocation(0);
+        attributeDescriptions[0].setFormat(vk::Format::eR32G32B32A32Sfloat);
+        attributeDescriptions[0].setOffset(offsetof(Blade, v0));
 
         // v1
-        attributeDescriptions[1].binding = 0;
-        attributeDescriptions[1].location = 1;
-        attributeDescriptions[1].format = VK_FORMAT_R32G32B32A32_SFLOAT;
-        attributeDescriptions[1].offset = offsetof(Blade, v1);
+        attributeDescriptions[1].setBinding(0);
+        attributeDescriptions[1].setLocation(1);
+        attributeDescriptions[1].setFormat(vk::Format::eR32G32B32A32Sfloat);
+        attributeDescriptions[1].setOffset(offsetof(Blade, v1));
 
         // v2
-        attributeDescriptions[2].binding = 0;
-        attributeDescriptions[2].location = 2;
-        attributeDescriptions[2].format = VK_FORMAT_R32G32B32A32_SFLOAT;
-        attributeDescriptions[2].offset = offsetof(Blade, v2);
+        attributeDescriptions[2].setBinding(0);
+        attributeDescriptions[2].setLocation(2);
+        attributeDescriptions[2].setFormat(vk::Format::eR32G32B32A32Sfloat);
+        attributeDescriptions[2].setOffset(offsetof(Blade, v1));
 
         // up
-        attributeDescriptions[3].binding = 0;
-        attributeDescriptions[3].location = 3;
-        attributeDescriptions[3].format = VK_FORMAT_R32G32B32A32_SFLOAT;
-        attributeDescriptions[3].offset = offsetof(Blade, up);
+        attributeDescriptions[3].setBinding(0);
+        attributeDescriptions[3].setLocation(3);
+        attributeDescriptions[3].setFormat(vk::Format::eR32G32B32A32Sfloat);
+        attributeDescriptions[3].setOffset(offsetof(Blade, up));
 
         return attributeDescriptions;
     }
@@ -71,18 +72,18 @@ struct BladeDrawIndirect {
 
 class Blades : public Model {
 private:
-    VkBuffer bladesBuffer;
-    VkBuffer culledBladesBuffer;
-    VkBuffer numBladesBuffer;
+    vk::Buffer bladesBuffer;
+    vk::Buffer culledBladesBuffer;
+    vk::Buffer numBladesBuffer;
 
-    VkDeviceMemory bladesBufferMemory;
-    VkDeviceMemory culledBladesBufferMemory;
-    VkDeviceMemory numBladesBufferMemory;
+    vk::DeviceMemory bladesBufferMemory;
+    vk::DeviceMemory culledBladesBufferMemory;
+    vk::DeviceMemory numBladesBufferMemory;
 
 public:
-    Blades(Device* device, VkCommandPool commandPool, float planeDim);
-    VkBuffer GetBladesBuffer() const;
-    VkBuffer GetCulledBladesBuffer() const;
-    VkBuffer GetNumBladesBuffer() const;
+    Blades(Device* device, vk::CommandPool commandPool, float planeDim);
+    vk::Buffer GetBladesBuffer() const;
+    vk::Buffer GetCulledBladesBuffer() const;
+    vk::Buffer GetNumBladesBuffer() const;
     ~Blades();
 };

@@ -1,12 +1,10 @@
-
 #pragma once
-
 #include <glm/glm.hpp>
 #include "Device.h"
 
 struct CameraBufferObject {
-  glm::mat4 viewMatrix;
-  glm::mat4 projectionMatrix;
+    glm::mat4 viewMatrix;
+    glm::mat4 projectionMatrix;
 };
 
 class Camera {
@@ -15,8 +13,8 @@ private:
     
     CameraBufferObject cameraBufferObject;
     
-    VkBuffer buffer;
-    VkDeviceMemory bufferMemory;
+    vk::Buffer buffer;
+    vk::DeviceMemory bufferMemory;
 
     void* mappedData;
 
@@ -26,7 +24,7 @@ public:
     Camera(Device* device, float aspectRatio);
     ~Camera();
 
-    VkBuffer GetBuffer() const;
+    vk::Buffer GetBuffer() const;
     
     void UpdateOrbit(float deltaX, float deltaY, float deltaZ);
 };

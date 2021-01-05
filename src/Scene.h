@@ -1,8 +1,6 @@
 #pragma once
-
 #include <glm/glm.hpp>
 #include <chrono>
-
 #include "Model.h"
 #include "Blades.h"
 
@@ -16,17 +14,16 @@ struct Time {
 class Scene {
 private:
     Device* device;
-    
-    VkBuffer timeBuffer;
-    VkDeviceMemory timeBufferMemory;
     Time time;
     
+    vk::Buffer timeBuffer;
+    vk::DeviceMemory timeBufferMemory;
     void* mappedData;
 
     std::vector<Model*> models;
     std::vector<Blades*> blades;
 
-high_resolution_clock::time_point startTime = high_resolution_clock::now();
+    high_resolution_clock::time_point startTime = high_resolution_clock::now();
 
 public:
     Scene() = delete;
@@ -39,7 +36,7 @@ public:
     void AddModel(Model* model);
     void AddBlades(Blades* blades);
 
-    VkBuffer GetTimeBuffer() const;
+    vk::Buffer GetTimeBuffer() const;
 
     void UpdateTime();
 };

@@ -1,4 +1,4 @@
-#include <vulkan/vulkan.h>
+#include <vulkan/vulkan.hpp>
 #include "Instance.h"
 #include "Window.h"
 #include "Renderer.h"
@@ -15,7 +15,7 @@ namespace {
     void resizeCallback(GLFWwindow* window, int width, int height) {
         if (width == 0 || height == 0) return;
 
-        vkDeviceWaitIdle(device->GetVkDevice());
+        vkDeviceWaitIdle(device->GetLogicalDevice());
         swapChain->Recreate();
         renderer->RecreateFrameResources();
     }
@@ -69,22 +69,23 @@ int main() {
     static constexpr char* applicationName = "Vulkan Grass Rendering";
     InitializeWindow(640, 480, applicationName);
 
-    unsigned int glfwExtensionCount = 0;
+    unsigned int glfwExtensionCount = 0; 
     const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 
     Instance* instance = new Instance(applicationName, glfwExtensionCount, glfwExtensions);
 
-    VkSurfaceKHR surface;
-    if (glfwCreateWindowSurface(instance->GetVkInstance(), GetGLFWWindow(), nullptr, &surface) != VK_SUCCESS) {
+    VkSurfaceKHR rawSurface;
+    if (glfwCreateWindowSurface(instance->GetVkInstance(), GetGLFWWindow(), nullptr, &rawSurface) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create window surface");
     }
+    vk::SurfaceKHR surface = rawSurface;
 
     instance->PickPhysicalDevice({ VK_KHR_SWAPCHAIN_EXTENSION_NAME }, QueueFlagBit::GraphicsBit | QueueFlagBit::TransferBit | QueueFlagBit::ComputeBit | QueueFlagBit::PresentBit, surface);
 
-    VkPhysicalDeviceFeatures deviceFeatures = {};
-    deviceFeatures.tessellationShader = VK_TRUE;
-    deviceFeatures.fillModeNonSolid = VK_TRUE;
-    deviceFeatures.samplerAnisotropy = VK_TRUE;
+    vk::PhysicalDeviceFeatures deviceFeatures;
+    deviceFeatures.setTessellationShader(VK_TRUE);
+    deviceFeatures.setFillModeNonSolid(VK_TRUE);
+    deviceFeatures.setSamplerAnisotropy(VK_TRUE);
 
     device = instance->CreateDevice(QueueFlagBit::GraphicsBit | QueueFlagBit::TransferBit | QueueFlagBit::ComputeBit | QueueFlagBit::PresentBit, deviceFeatures);
 
@@ -92,26 +93,28 @@ int main() {
 
     camera = new Camera(device, 640.f / 480.f);
 
-    VkCommandPoolCreateInfo transferPoolInfo = {};
-    transferPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-    transferPoolInfo.queueFamilyIndex = device->GetInstance()->GetQueueFamilyIndices()[QueueFlags::Transfer];
-    transferPoolInfo.flags = 0;
-
-    VkCommandPool transferCommandPool;
-    if (vkCreateCommandPool(device->GetVkDevice(), &transferPoolInfo, nullptr, &transferCommandPool) != VK_SUCCESS) {
-        throw std::runtime_error("Failed to create command pool");
+    vk::CommandPoolCreateInfo transferPoolInfo;
+    transferPoolInfo.setQueueFamilyIndex(device->GetInstance()->GetQueueFamilyIndices()[QueueFlags::Transfer]);
+    transferPoolInfo.setFlags(vk::CommandPoolCreateFlags(0));
+   
+    vk::CommandPool transferCommandPool;
+    try {
+        transferCommandPool = device->GetLogicalDevice().createCommandPool(transferPoolInfo);
+    }
+    catch (vk::SystemError err) {
+        throw std::runtime_error("Failed to create command pool in main()");
     }
 
-    VkImage grassImage;
-    VkDeviceMemory grassImageMemory;
+    vk::Image grassImage;
+    vk::DeviceMemory grassImageMemory;
     Image::FromFile(device,
         transferCommandPool,
         "images/grass.jpg",
-        VK_FORMAT_R8G8B8A8_UNORM,
-        VK_IMAGE_TILING_OPTIMAL,
-        VK_IMAGE_USAGE_SAMPLED_BIT,
-        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        vk::Format::eR8G8B8A8Unorm,
+        vk::ImageTiling::eOptimal,
+        vk::ImageUsageFlags(vk::ImageUsageFlagBits::eSampled),
+        vk::ImageLayout::eShaderReadOnlyOptimal,
+        vk::MemoryPropertyFlags(vk::MemoryPropertyFlagBits::eDeviceLocal),
         grassImage,
         grassImageMemory
     );
@@ -131,7 +134,7 @@ int main() {
     
     Blades* blades = new Blades(device, transferCommandPool, planeDim);
 
-    vkDestroyCommandPool(device->GetVkDevice(), transferCommandPool, nullptr);
+    device->GetLogicalDevice().destroyCommandPool(transferCommandPool);
 
     Scene* scene = new Scene(device);
     scene->AddModel(plane);
@@ -148,12 +151,11 @@ int main() {
         scene->UpdateTime();
         renderer->Frame();
     }
+    device->GetLogicalDevice().waitIdle();
 
-    vkDeviceWaitIdle(device->GetVkDevice());
-
-    vkDestroyImage(device->GetVkDevice(), grassImage, nullptr);
-    vkFreeMemory(device->GetVkDevice(), grassImageMemory, nullptr);
-
+    device->GetLogicalDevice().destroyImage(grassImage);
+    device->GetLogicalDevice().freeMemory(grassImageMemory);
+    
     delete scene;
     delete plane;
     delete blades;
