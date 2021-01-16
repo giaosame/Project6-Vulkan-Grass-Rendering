@@ -1,7 +1,7 @@
 Vulkan Grass Rendering
 ========================
 
-![Grass Rendering](https://github.com/giaosame/Vulkan-Grass-Rendering/blob/master/img/grass_rendering.gif)
+![Grass Rendering](img/grass_rendering.gif)
 
 ## Features
 
@@ -11,7 +11,7 @@ Vulkan Grass Rendering
 
 - Simulate forces with gravity, recovery and wind.
 
-  ![Forces pic](C:\Users\giaos\Desktop\Vulkan-Grass-Rendering\img\forces.png)
+  ![Forces pic](img/forces.png)
 
 - Cull the blade when the front face direction is perpendicular to the view vector and when blades are outside of the view-frustum.
 
