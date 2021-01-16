@@ -1,7 +1,7 @@
 Vulkan Grass Rendering
 ========================
 
-![Grass Rendering](C:\Users\giaos\Desktop\Vulkan-Grass-Rendering\img\grass_rendering.gif)
+![Grass Rendering](https://github.com/giaosame/Vulkan-Grass-Rendering/blob/master/img/grass_rendering.gif)
 
 ## Features
 
