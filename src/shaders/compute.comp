@@ -21,20 +21,24 @@ struct Blade {
     vec4 up;
 };
 
-// TODO: Add bindings to:
-// 1. Store the input blades
-// 2. Write out the culled blades
-// 3. Write the total number of blades remaining
+// Store the input blades
+layout(set = 2, binding = 0) buffer bladesBuffer {
+    Blade inputBlades[];
+};
 
-// The project is using vkCmdDrawIndirect to use a buffer as the arguments for a draw call
-// This is sort of an advanced feature so we've showed you what this buffer should look like
-//
-// layout(set = ???, binding = ???) buffer NumBlades {
-// 	  uint vertexCount;   // Write the number of blades remaining here
-// 	  uint instanceCount; // = 1
-// 	  uint firstVertex;   // = 0
-// 	  uint firstInstance; // = 0
-// } numBlades;
+// Write out the culled blades
+layout(set = 2, binding = 1) buffer culledBladesBuffer {
+    Blade outputBlades[];
+};
+
+// Write the total number of blades remaining
+layout(set = 2, binding = 2) buffer numBladesBuffer {
+    uint vertexCount;   // Write the number of blades remaining here
+    uint instanceCount; // = 1
+    uint firstVertex;   // = 0
+    uint firstInstance; // = 0
+} numBlades;
+
 
 bool inBounds(float value, float bounds) {
     return (value >= -bounds) && (value <= bounds);
@@ -43,14 +47,108 @@ bool inBounds(float value, float bounds) {
 void main() {
 	// Reset the number of blades to 0
 	if (gl_GlobalInvocationID.x == 0) {
-		// numBlades.vertexCount = 0;
+        numBlades.vertexCount = 0;
 	}
-	barrier(); // Wait till all threads reach this point
+    // Wait till all threads reach this point
+	barrier(); 
 
-    // TODO: Apply forces on every blade and update the vertices in the buffer
+    uint idx = gl_GlobalInvocationID.x;
+    Blade b = inputBlades[idx];
 
-	// TODO: Cull blades that are too far away or not in the camera frustum and write them
-	// to the culled blades buffer
+    // Extract data from blade _b_ 
+    vec3 v0 = b.v0.xyz;       //  the fixed position of the blade
+    float dirAngle = b.v0.w;  
+    
+    vec3 v1 = b.v1.xyz;
+    float height = b.v1.w;
+
+    vec3 v2 = b.v2.xyz;       // the tip position of the blade, moved according to the physical model
+    float width = b.v2.w;
+    
+    vec3 up = b.up.xyz;  
+    float stiffness = b.up.w;
+
+    // ------ Apply forces on every blade and update the vertices in the buffer ------
+    // Compute the recovery force
+    vec3 iv2 = v0 + up * height;
+    vec3 recovery = (iv2 - v2) * stiffness;
+
+    // Compute the gravity force
+    vec3 widthDir = vec3(cos(dirAngle), 0.0, sin(dirAngle)); 
+    vec3 faceDir = normalize(cross(up, widthDir));  // the front direction that is perpendicular to the width of the blade
+    vec3 gE = vec3(0, -9.8, 0);
+    vec3 gF = 0.25 * length(gE) * faceDir;
+    vec3 gravity = gE + gF;
+
+    // Compute the wind force
+    float windDirRate = 1;
+    float windStrength = 1.0;
+    vec3 windDir = normalize(vec3(sin(totalTime * windDirRate), 0.0, cos(totalTime * windDirRate)));
+    vec3 wi = windStrength * windDir * (1.5 + 0.5 * sin(v0.x + v0.y + v0.z));  // represents the direction and the strength of the wind influence at the position of a blade
+    float fd = 1.0 - abs(dot(windDir, normalize(v2 - v0)));  // the directional alignment towards the wind influence
+    float fh = dot(v2 - v0, up) / height;  // the height ratio that indicates the straightness of the blade with respect to the up-vector up
+    float theta = fd * fh;  // the alignment value
+    vec3 wind = wi * theta;
+
+    vec3 translation = (recovery + gravity + wind) * deltaTime;
+    v2 += translation;
+
+    // ------ State Validation ------
+    // Make sure v2 must not be pushed beneath the ground
+    v2 = v2 - up * min(dot(up, (v2 - v0)), 0.0);
+
+    // Make sure the length of the curve must be equal to the height of the blade of grass 
+    float lProj = length(v2 - v0 - up * dot((v2 - v0), up));
+    float temp = lProj / height;
+    v1 = v0 + height * up * max(1 - temp, 0.05 * max(temp, 1));
+
+    // Calculate the approximation for the length L of a Bezier curve of degree 3
+    float L0 = length(v0 - v2);
+    float L1 = length(v0 - v1) + length(v1 - v2);
+    float L  = (2 * L0 + 2 * L1) / 4;
+    float r = height / L;
+
+    vec3 v1corr = v0 + r * (v1 - v0);
+    vec3 v2corr = v1corr + r * (v2 - v1);
+    vec3 mid = 0.25 * v0 + 0.5 * v1corr + 0.25 * v2corr;
+
+    // Update the current blade
+    inputBlades[idx].v1.xyz = v1corr;
+    inputBlades[idx].v2.xyz = v2corr;
+
+	// ------ Cull blades that are too far away or not in the camera frustum and write them to the culled blades buffer ------
 	// Note: to do this, you will need to use an atomic operation to read and update numBlades.vertexCount
 	// You want to write the visible blades to the buffer without write conflicts between threads
+    bool orientationTestCulled = false, viewFrustumTestCulled = false, distanceTestCulled = false;
+
+    // Orientation test
+    vec3 eye = vec3(-camera.view[0][3], -camera.view[1][3], -camera.view[2][3]);
+    vec3 viewDir = normalize(eye);
+    orientationTestCulled = abs(dot(viewDir, widthDir)) > 0.9;
+
+    // View-frustum test
+    mat4 viewProj = camera.proj * camera.view;
+    vec4 v0Ndc = viewProj * vec4(v0, 1.0);
+    vec4 midNdc = viewProj * vec4(mid, 1.0);
+    vec4 v2Ndc = viewProj * vec4(v2corr, 1.0);
+
+    float tolerance = -0.05;
+    float v0H = v0Ndc.w + tolerance;
+    bool v0InBound = inBounds(v0Ndc.x, v0H) && inBounds(v0Ndc.y, v0H) && inBounds(v0Ndc.z, v0H); 
+    float midH = midNdc.w + tolerance;
+    bool midInBound = inBounds(midNdc.x, midH) && inBounds(midNdc.y, midH) && inBounds(midNdc.z, midH); 
+    float v2H = v2Ndc.w + tolerance;
+    bool v2InBound = inBounds(v2Ndc.x, v2H) && inBounds(v2Ndc.y, v2H) && inBounds(v2Ndc.z, v2H); 
+
+    viewFrustumTestCulled = !v0InBound && !midInBound && !v2InBound;
+
+    // Distance test
+    float distProj = length(v0 - eye - up * dot(v0 - eye, up));
+    float distMax = 18.0;
+    int distNumLevels = 3;
+    distanceTestCulled = (idx % distNumLevels) > floor(distNumLevels * (1.0 - distProj / distMax));
+
+    if (!orientationTestCulled && !viewFrustumTestCulled && !distanceTestCulled) {
+        outputBlades[atomicAdd(numBlades.vertexCount, 1)] = inputBlades[idx];
+    }
 }

@@ -3,6 +3,7 @@
 #ifdef _WIN32
 #pragma comment(linker, "/subsystem:console")
 #include <windows.h>
+#include <iostream>
 #elif defined(__linux__)
 #include <xcb/xcb.h>
 #endif

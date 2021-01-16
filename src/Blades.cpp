@@ -47,7 +47,7 @@ Blades::Blades(Device* device, vk::CommandPool commandPool, float planeDim)
     indirectDraw.firstInstance = 0;
 
     BufferUtils::CreateBufferFromData(device, commandPool, blades.data(), NUM_BLADES * sizeof(Blade), vk::BufferUsageFlagBits::eStorageBuffer, bladesBuffer, bladesBufferMemory);
-    BufferUtils::CreateBuffer(device, NUM_BLADES * sizeof(Blade), vk::BufferUsageFlagBits::eStorageBuffer, vk::MemoryPropertyFlagBits::eHostVisible, culledBladesBuffer, culledBladesBufferMemory);
+    BufferUtils::CreateBuffer(device, NUM_BLADES * sizeof(Blade), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eHostVisible, culledBladesBuffer, culledBladesBufferMemory);
     BufferUtils::CreateBufferFromData(device, commandPool, &indirectDraw, sizeof(BladeDrawIndirect), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eIndirectBuffer, numBladesBuffer, numBladesBufferMemory);
 }
 

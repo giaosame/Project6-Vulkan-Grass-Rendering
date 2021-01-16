@@ -5,12 +5,12 @@
 #include "Model.h"
 
 constexpr static unsigned int NUM_BLADES = 1 << 13;
-constexpr static float MIN_HEIGHT = 1.3f;
+constexpr static float MIN_HEIGHT = 1.2f;
 constexpr static float MAX_HEIGHT = 2.5f;
-constexpr static float MIN_WIDTH = 0.1f;
-constexpr static float MAX_WIDTH = 0.14f;
+constexpr static float MIN_WIDTH = 0.075f;
+constexpr static float MAX_WIDTH = 0.125f;
 constexpr static float MIN_BEND = 7.0f;
-constexpr static float MAX_BEND = 13.0f;
+constexpr static float MAX_BEND = 15.0f;
 
 struct Blade {
     // Position and direction
@@ -51,7 +51,7 @@ struct Blade {
         attributeDescriptions[2].setBinding(0);
         attributeDescriptions[2].setLocation(2);
         attributeDescriptions[2].setFormat(vk::Format::eR32G32B32A32Sfloat);
-        attributeDescriptions[2].setOffset(offsetof(Blade, v1));
+        attributeDescriptions[2].setOffset(offsetof(Blade, v2));
 
         // up
         attributeDescriptions[3].setBinding(0);
